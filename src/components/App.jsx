@@ -17,6 +17,7 @@ const DEFAULT_CONTACTS = [
 ]
 
 const CONTACTS_KEY = 'contacts';
+let isFirstMount = true;
 
 export function App() {
   const [contacts, setContacts] = useState([]);
@@ -38,6 +39,10 @@ export function App() {
   }, []);
   
   useEffect(() => {
+    if (isFirstMount) {
+      isFirstMount = false;
+      return;
+    }
     const isContactsEmpty = contacts.length === 0;
     console.log('з');
     setTimeout(() => {
@@ -49,6 +54,7 @@ export function App() {
     if (isContactsEmpty) {
       setFilter('');
     }
+    
     
   }, [contacts]);
   
