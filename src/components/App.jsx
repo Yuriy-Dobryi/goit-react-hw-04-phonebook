@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { nanoid } from "nanoid";
 import { Notify } from 'notiflix';
 
@@ -17,15 +17,15 @@ const DEFAULT_CONTACTS = [
 ]
 
 const CONTACTS_KEY = 'contacts';
-let isFirstMount = true;
 
 export function App() {
   const [contacts, setContacts] = useState([]);
   const [filter, setFilter] = useState('');
   const [defaultDataBtn, setDefaultDataBtn] = useState(false);
+  const isFirstRender = useRef(true);
 
   useEffect(() => {
-    console.log('без');
+    
     const localContacts = JSON.parse(localStorage.getItem(CONTACTS_KEY));
     
     setTimeout(() => {
@@ -39,16 +39,24 @@ export function App() {
   }, []);
   
   useEffect(() => {
-    if (isFirstMount) {
-      isFirstMount = false;
-      return;
-    }
+    // if (isFirstRender.current) {
+    //   isFirstRender.current = false;
+    //   return;
+    // }
     const isContactsEmpty = contacts.length === 0;
-    console.log('з');
+    console.log('update');
     setTimeout(() => {
       localStorage.setItem(CONTACTS_KEY, JSON.stringify([...contacts]));
+      if (isContactsEmpty) {
+        if (!defaultDataBtn) {
+          setDefaultDataBtn(true);
+        }
+      } else {
+        if (defaultDataBtn) {
+          setDefaultDataBtn(false);
+        }
+      }
       
-      setDefaultDataBtn(isContactsEmpty);
     }, 500);
 
     if (isContactsEmpty) {
@@ -56,7 +64,7 @@ export function App() {
     }
     
     
-  }, [contacts]);
+  }, [contacts, defaultDataBtn]);
   
   function addContact(newContact) {
     const newContactName = newContact.name.toLocaleLowerCase();
