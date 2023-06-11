@@ -1,4 +1,4 @@
-import { Component } from "react";
+import { useState, useEffect } from "react";
 import { nanoid } from "nanoid";
 import { Notify } from 'notiflix';
 
@@ -18,56 +18,41 @@ const DEFAULT_CONTACTS = [
 
 const CONTACTS_KEY = 'contacts';
 
-export class App extends Component {
-  state = {
-    contacts: [],
-    filter: '',
-    defaultContactBtn: false,
-  }
+export function App() {
+  const [contacts, setContacts] = useState([]);
+  const [filter, setFilter] = useState('');
+  const [defaultDataBtn, setDefaultDataBtn] = useState(false);
 
-  componentDidMount() {
+  useEffect(() => {
+    console.log('без');
+    const localContacts = JSON.parse(localStorage.getItem(CONTACTS_KEY));
+    
     setTimeout(() => {
-      const localContacts = JSON.parse(localStorage.getItem(CONTACTS_KEY));
-  
       if (localContacts && localContacts.length > 0) {
-        this.setState({ contacts: [...localContacts] });
-      } else {
-        this.setState({ defaultContactBtn: true });
+        setContacts([...localContacts]);
+        return;
       }
+
+      setDefaultDataBtn(true);
     }, 500);
-  }
-
-  componentDidUpdate(_, prevState) {
-    const { contacts, filter } = this.state;
-    const isContactsChanged = contacts.length !== prevState.contacts.length;
-    const isFilterChanged = prevState.filter !== filter;
-
-    const isContactsEmpty = contacts.length === 0;
-    const isFilterFilled = filter !== '';
-
-
-    if (isContactsChanged) {
-      localStorage.setItem(CONTACTS_KEY, JSON.stringify([...contacts]));
-
-      // Якщо контакти були змінені таким чином, що їх більше немає, то поле filter стає пустим (якщо цієї умови не буде, то при додаванні нового контакта/контактів, вони не відмалюються користувачу із-за старого фільтра до тих пір, поки filter не буде змінено)
-      if (isContactsEmpty) {
-        this.setState({ filter: '' });
-      }
-
-      // Якщо контакти в state були змінені, - то в localStorage записуються поточні контакти, а в state кнопки дефолтних контактів теж змінюється значення в залежності від кількості поточних контактів  
-      setTimeout(() => {
-        this.setState({ defaultContactBtn: isContactsEmpty });
-      }, 500);
-
-      // Якщо контакти в state не були змінені, а змінений був саме filter, то провіряємо чи є такий контакт (або контакти), якщо немає - виводимо повідомлення. Якщо умови isFilterFilled не буде, то якщо в state-контактах знаходиться лише один контакт, і в той же час він є відфільтрований, то після видалення буде повідомлення що такого контакту не було знайдено.
-    } else if (isFilterChanged && isFilterFilled) {
-      const filteredContacts = this.filterContacts();
-      this.checkEmptyContacts(filteredContacts.length, 'filter');
-    }
-  }
+  }, []);
   
-  addContact = (newContact) => {
-    const { contacts } = this.state;
+  useEffect(() => {
+    const isContactsEmpty = contacts.length === 0;
+    console.log('з');
+    setTimeout(() => {
+      localStorage.setItem(CONTACTS_KEY, JSON.stringify([...contacts]));
+      
+      setDefaultDataBtn(isContactsEmpty);
+    }, 500);
+
+    if (isContactsEmpty) {
+      setFilter('');
+    }
+    
+  }, [contacts]);
+  
+  function addContact(newContact) {
     const newContactName = newContact.name.toLocaleLowerCase();
     const isNewContactExist = contacts.some(({ name }) =>
       name.toLocaleLowerCase() === newContactName);
@@ -77,34 +62,33 @@ export class App extends Component {
       return;
     }
 
-    this.setState({ contacts: [...contacts, newContact] }, () =>
-      this.showOperationMessage(newContact.name, 'added'));
+    setContacts([...contacts, newContact]);
+    showOperationMessage(newContact.name, 'added');
   }
 
-  setDefaultContacts = () => {
+  function setDefaultContacts() {
     setTimeout(() => {
-      this.setState({ contacts: [...DEFAULT_CONTACTS], filter: '' });
+      setContacts([...DEFAULT_CONTACTS]);
+      setFilter('');
     }, 500);
 
-    this.setState({ defaultContactBtn: false });
+    setDefaultDataBtn(false);
   }
 
-  removeContact = (id, name) => {
-    const { contacts } = this.state;
+  function removeContact(id, name) {
     const updatedContacts = contacts.filter((contact) =>
       contact.id !== id);
 
-    this.setState({ contacts: [...updatedContacts] }, () => {
-      this.showOperationMessage(name, 'removed')
-      this.checkEmptyContacts(updatedContacts.length, 'remove');
-    });
+    setContacts([...updatedContacts]);
+    showOperationMessage(name, 'removed')
+    checkEmptyContacts(updatedContacts.length, 'remove');
   }
 
-  showOperationMessage = (contactName, typeOperation) => {
+  function showOperationMessage(contactName, typeOperation) {
     Notify.success(`${contactName} has been ${typeOperation}`)
   }
 
-  checkEmptyContacts = (contactsCount, typeOperation) => {
+  function checkEmptyContacts(contactsCount, typeOperation) {
     if (contactsCount === 0) {
       Notify.info(typeOperation === 'remove'
         ? 'You deleted all contacts🙄'
@@ -112,50 +96,42 @@ export class App extends Component {
     }
   }
 
-  setFilter = (value) => {
-    this.setState({ filter: value });
-  };
-
-  filterContacts = () => {
-    const { contacts } = this.state;
-    const filter = this.state.filter.toLocaleLowerCase();
+  function filterContacts() {
+    const modifiedFilter  = filter.toLocaleLowerCase();
 
     return filter
-      ? contacts.filter(({ name }) => name.toLocaleLowerCase().includes(filter))
+      ? contacts.filter(({ name }) => name.toLocaleLowerCase().includes(modifiedFilter))
       : contacts
   }
   
-  render() {
-    const { contacts, filter, defaultContactBtn } = this.state;
-    const filteredContacts = this.filterContacts();
-    const isContactsEmpty = contacts.length === 0;
+  const filteredContacts = filterContacts();
+  const isContactsEmpty = contacts.length === 0;
 
-    return (
-      <div className="container">
-        <div className={styles.phonebook}>
-          <h1 className={styles.title}>Phonebook</h1>
-          <ContactForm
-            addContact={this.addContact} />
-        </div>
-
-        <div>
-          <h2 className={styles.title}>Contacts</h2>
-          {isContactsEmpty
-            ? defaultContactBtn
-              ?
-              <>
-                <p>There is no contacts</p>
-                <button className={styles.btn} onClick={this.setDefaultContacts}>Default Contacts</button>
-              </>
-              : <p>Loading . . .</p>
-            : <Filter
-              filter={filter}
-              setFilter={this.setFilter} />}
-          <ContactList
-            contacts={filteredContacts}
-            removeContact={this.removeContact} />
-        </div>
+  return (
+    <div className="container">
+      <div className={styles.phonebook}>
+        <h1 className={styles.title}>Phonebook</h1>
+        <ContactForm
+          addContact={addContact} />
       </div>
-    )
-  }
+
+      <div>
+        <h2 className={styles.title}>Contacts</h2>
+        {isContactsEmpty
+          ? defaultDataBtn
+            ?
+            <>
+              <p>There is no contacts</p>
+              <button className={styles.btn} onClick={setDefaultContacts}>Default Contacts</button>
+            </>
+            : <p>Loading . . .</p>
+          : <Filter
+            filter={filter}
+            setFilter={setFilter} />}
+        <ContactList
+          contacts={filteredContacts}
+          removeContact={removeContact} />
+      </div>
+    </div>
+  )
 }

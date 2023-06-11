@@ -7,7 +7,7 @@ export function ContactForm({ addContact }) {
   const [name, setName] = useState('');
   const [number, setNumber] = useState('');
   
-  const inputChange = (e) => {
+  function inputChange(e) {
     const { name, value } = e.target;
     if (name === 'name') {
       setName(value);
@@ -16,7 +16,7 @@ export function ContactForm({ addContact }) {
     setNumber(value);
   }
 
-  const submitClick = (e) => {
+  function submitClick(e) {
     e.preventDefault();
     const newContact = { id: nanoid(), name, number }
 
