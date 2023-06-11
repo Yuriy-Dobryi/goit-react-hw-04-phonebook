@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { nanoid } from "nanoid";
 import { Notify } from 'notiflix';
 
@@ -22,7 +22,7 @@ export function App() {
   const [contacts, setContacts] = useState([]);
   const [filter, setFilter] = useState('');
   const [defaultDataBtn, setDefaultDataBtn] = useState(false);
-  const isFirstRender = useRef(true);
+  // const isFirstRender = useRef(true);
 
   useEffect(() => {
     
