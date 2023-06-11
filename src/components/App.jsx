@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { nanoid } from "nanoid";
 import { Notify } from 'notiflix';
 
@@ -21,50 +21,48 @@ const CONTACTS_KEY = 'contacts';
 export function App() {
   const [contacts, setContacts] = useState([]);
   const [filter, setFilter] = useState('');
-  const [defaultDataBtn, setDefaultDataBtn] = useState(false);
-  // const isFirstRender = useRef(true);
+
+  const [status, setStatus] = useState('idle');
+  const isFirstRender = useRef(true);
 
   useEffect(() => {
-    
     const localContacts = JSON.parse(localStorage.getItem(CONTACTS_KEY));
+    setStatus('pending');
     
     setTimeout(() => {
       if (localContacts && localContacts.length > 0) {
         setContacts([...localContacts]);
-        return;
+        setStatus('resolved');
+      } else {
+        setStatus('rejected');
       }
 
-      setDefaultDataBtn(true);
-    }, 500);
+    }, 250);
+
   }, []);
   
   useEffect(() => {
-    // if (isFirstRender.current) {
-    //   isFirstRender.current = false;
-    //   return;
-    // }
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      return;
+    }
+
+    setStatus('pending');
     const isContactsEmpty = contacts.length === 0;
-    console.log('update');
+
     setTimeout(() => {
       localStorage.setItem(CONTACTS_KEY, JSON.stringify([...contacts]));
+      
       if (isContactsEmpty) {
-        if (!defaultDataBtn) {
-          setDefaultDataBtn(true);
-        }
+        setStatus('rejected');
+        setFilter('');
       } else {
-        if (defaultDataBtn) {
-          setDefaultDataBtn(false);
-        }
+        setStatus('resolved');
       }
       
-    }, 500);
+    }, 250);
 
-    if (isContactsEmpty) {
-      setFilter('');
-    }
-    
-    
-  }, [contacts, defaultDataBtn]);
+  }, [contacts]);
   
   function addContact(newContact) {
     const newContactName = newContact.name.toLocaleLowerCase();
@@ -81,12 +79,7 @@ export function App() {
   }
 
   function setDefaultContacts() {
-    setTimeout(() => {
       setContacts([...DEFAULT_CONTACTS]);
-      setFilter('');
-    }, 500);
-
-    setDefaultDataBtn(false);
   }
 
   function removeContact(id, name) {
@@ -111,7 +104,7 @@ export function App() {
   }
 
   function filterContacts() {
-    const modifiedFilter  = filter.toLocaleLowerCase();
+    const modifiedFilter = filter.toLocaleLowerCase();
 
     return filter
       ? contacts.filter(({ name }) => name.toLocaleLowerCase().includes(modifiedFilter))
@@ -119,8 +112,7 @@ export function App() {
   }
   
   const filteredContacts = filterContacts();
-  const isContactsEmpty = contacts.length === 0;
-
+  
   return (
     <div className="container">
       <div className={styles.phonebook}>
@@ -131,20 +123,26 @@ export function App() {
 
       <div>
         <h2 className={styles.title}>Contacts</h2>
-        {isContactsEmpty
-          ? defaultDataBtn
-            ?
-            <>
-              <p>There is no contacts</p>
-              <button className={styles.btn} onClick={setDefaultContacts}>Default Contacts</button>
-            </>
-            : <p>Loading . . .</p>
-          : <Filter
-            filter={filter}
-            setFilter={setFilter} />}
-        <ContactList
-          contacts={filteredContacts}
-          removeContact={removeContact} />
+        {status === 'pending' &&
+          <p>Loading . . .</p>}
+
+        {status === 'resolved' &&
+          <>
+            <Filter
+              filter={filter}
+              setFilter={setFilter} />
+            <ContactList
+              contacts={filteredContacts}
+              removeContact={removeContact} />
+          </>}
+        
+        {status === 'rejected' &&
+          <>
+            <p>There is no contacts</p>
+            <button className={styles.btn} onClick={setDefaultContacts}>
+              Default Contacts
+            </button>
+          </>}
       </div>
     </div>
   )
