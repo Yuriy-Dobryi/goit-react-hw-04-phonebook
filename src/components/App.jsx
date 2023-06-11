@@ -1,12 +1,13 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { nanoid } from "nanoid";
 import { Notify } from 'notiflix';
 
-import styles from './App.module.css'
 import { ContactForm } from "./ContactForm/ContactForm";
 import { Filter } from "./Filter/Filter";
 import { ContactList } from "./ContactList/ContactList";
+import styles from './App.module.css'
 
+const CONTACTS_KEY = 'contacts';
 const DEFAULT_CONTACTS = [
   { id: nanoid(), name: 'Rosie Simpson', number: '459-12-56' },
   { id: nanoid(), name: 'Rosie Sompson', number: '145-23-65' },
@@ -16,52 +17,29 @@ const DEFAULT_CONTACTS = [
   { id: nanoid(), name: 'Jack Shepart', number: '345-53-81' },
 ]
 
-const CONTACTS_KEY = 'contacts';
-
 export function App() {
-  const [contacts, setContacts] = useState([]);
-  const [filter, setFilter] = useState('');
-
-  const [status, setStatus] = useState('idle');
-  const isFirstRender = useRef(true);
-
-  useEffect(() => {
-    const localContacts = JSON.parse(localStorage.getItem(CONTACTS_KEY));
-    setStatus('pending');
-    
-    setTimeout(() => {
-      if (localContacts && localContacts.length > 0) {
-        setContacts([...localContacts]);
-        setStatus('resolved');
-      } else {
-        setStatus('rejected');
-      }
-
-    }, 250);
-
-  }, []);
   
+  const [contacts, setContacts] = useState(() => {
+    const localContacts =
+      JSON.parse(localStorage.getItem(CONTACTS_KEY));
+    return localContacts ? [...localContacts] : [];
+  });
+
+  const [filter, setFilter] = useState('');
+  const [status, setStatus] = useState('idle');
+
   useEffect(() => {
-    if (isFirstRender.current) {
-      isFirstRender.current = false;
-      return;
-    }
+    localStorage.setItem(CONTACTS_KEY, JSON.stringify([...contacts]));
 
     setStatus('pending');
     const isContactsEmpty = contacts.length === 0;
 
-    setTimeout(() => {
-      localStorage.setItem(CONTACTS_KEY, JSON.stringify([...contacts]));
-      
-      if (isContactsEmpty) {
-        setStatus('rejected');
-        setFilter('');
-      } else {
-        setStatus('resolved');
-      }
-      
-    }, 250);
-
+    if (isContactsEmpty) {
+      setStatus('rejected');
+      setFilter('');
+    } else {
+      setStatus('resolved');
+    }
   }, [contacts]);
   
   function addContact(newContact) {
@@ -73,13 +51,12 @@ export function App() {
       Notify.failure(`${newContact.name} is already in contacts.🧐`)
       return;
     }
-
     setContacts([...contacts, newContact]);
     showOperationMessage(newContact.name, 'added');
   }
 
   function setDefaultContacts() {
-      setContacts([...DEFAULT_CONTACTS]);
+    setContacts([...DEFAULT_CONTACTS]);
   }
 
   function removeContact(id, name) {
@@ -111,30 +88,25 @@ export function App() {
       : contacts
   }
   
-  const filteredContacts = filterContacts();
-  
   return (
     <div className="container">
       <div className={styles.phonebook}>
         <h1 className={styles.title}>Phonebook</h1>
-        <ContactForm
-          addContact={addContact} />
+        <ContactForm addContact={addContact} />
       </div>
 
       <div>
         <h2 className={styles.title}>Contacts</h2>
-        {status === 'pending' &&
-          <p>Loading . . .</p>}
-
         {status === 'resolved' &&
           <>
             <Filter
               filter={filter}
               setFilter={setFilter} />
             <ContactList
-              contacts={filteredContacts}
+              contacts={filterContacts()}
               removeContact={removeContact} />
-          </>}
+          </>
+        }
         
         {status === 'rejected' &&
           <>
@@ -142,7 +114,8 @@ export function App() {
             <button className={styles.btn} onClick={setDefaultContacts}>
               Default Contacts
             </button>
-          </>}
+          </>
+        }
       </div>
     </div>
   )
