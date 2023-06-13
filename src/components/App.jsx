@@ -51,7 +51,8 @@ export function App() {
       Notify.failure(`${newContact.name} is already in contacts.🧐`)
       return;
     }
-    setContacts([...contacts, newContact]);
+    
+    setContacts(prev => [...prev, newContact]);
     showOperationMessage(newContact.name, 'added');
   }
 
